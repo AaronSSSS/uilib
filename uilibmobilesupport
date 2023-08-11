@@ -87,32 +87,59 @@ do
         end)
     end
 
-    function utility:HandleGradientButton(element,callback)
-        element.Active = true
-        local button = element
-        local gradient = element:FindFirstChildOfClass("UIGradient")
+   function utility:HandleGradientButton(element, callback)
+    element.Active = true
+    local button = element
+    local gradient = element:FindFirstChildOfClass("UIGradient")
 
-        button.InputBegan:Connect(function(input)
-            if input.UserInputType==Enum.UserInputType.MouseButton1 then
-                gradient.Rotation = 90
-            end
-        end)
-
-        button.MouseLeave:Connect(function()
-            gradient.Rotation = -90
-        end)
-
-        local con = UIS.InputEnded:Connect(function(input)
-            if input.UserInputType==Enum.UserInputType.MouseButton1 then
-                if gradient.Rotation == 90 then
-                    coroutine.wrap(callback)()
-                end
-                gradient.Rotation = -90
-            end
-        end)
-
-        return con -- for proper destroying and to prevent memory leaks
+    local function ActivateButton()
+        gradient.Rotation = 90
     end
+
+    local function DeactivateButton()
+        gradient.Rotation = -90
+    end
+
+    local function ExecuteCallback()
+        coroutine.wrap(callback)()
+        DeactivateButton()
+    end
+
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            ActivateButton()
+        elseif input.UserInputType == Enum.UserInputType.Touch then
+            ActivateButton()
+        end
+    end)
+
+    button.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            if gradient.Rotation == 90 then
+                ExecuteCallback()
+            end
+            DeactivateButton()
+        elseif input.UserInputType == Enum.UserInputType.Touch then
+            if gradient.Rotation == 90 then
+                ExecuteCallback()
+            end
+            DeactivateButton()
+        end
+    end)
+
+    button.MouseLeave:Connect(DeactivateButton)
+
+    local con = UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            DeactivateButton()
+        elseif input.UserInputType == Enum.UserInputType.Touch then
+            DeactivateButton()
+        end
+    end)
+
+    return con -- for proper destroying and to prevent memory leaks
+end
+
 
     function utility:FormatNumber(number,decimalPlaces)
         if not typeof(number)=="number" then
